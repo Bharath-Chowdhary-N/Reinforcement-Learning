@@ -33,7 +33,7 @@ class DQN():
         self.gamma = 0.99
         self.n_episodes = 1000
         self.epsilon = 1
-        self.minibath_size = 64
+        self.mini_batch_size = 64
     
     def create_env(self):
         self.env = gym.make("LunarLander-v2")
