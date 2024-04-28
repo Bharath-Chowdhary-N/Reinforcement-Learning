@@ -43,9 +43,36 @@ class DQN():
         self.env.seed(1)
         return self.env
     
+    def replay(self, replay_memory, mini_batch_size):
+        
+        minibatch = np.random.choice(replay_memory, mini_batch_size, replace=True)
+        
+        state_list      =      np.array(list(map(lambda x: x['state'], minibatch)))
+        action_list     =      np.array(list(map(lambda x: x['action'], minibatch)))
+        reward_list     =      np.array(list(map(lambda x: x['reward'], minibatch)))
+        next_state_list =      np.array(list(map(lambda x: x['next_state'], minibatch)))
+        done_list       =      np.array(list(map(lambda x: x['done'], minibatch)))
+
+        q_values_next_state        =      self.model.predict(next_state_list)
+
+        q_values_current_state     =      self.model.predict(state_list)
+
+        for ite,(state,action,reward,q_values_next_state, done) in enumerate(zip(state_list,action_list,reward_list,q_values_next_state, done_list)): 
+            if not done:  
+                target = reward + self.gamma * np.max(q_values_next_state)
+            else:
+                target = reward
+
+            q_values_current_state[ite][action] = target
+        
+        self.model.fit(state_list, q_values_current_state, epochs=1, verbose=0)
+
+        return self.model
+
+    
     def train(self):
         env = self.env
-        model = nn_model(env)
+        self.model = nn_model(env)
         episode_rewards = []
         for episode in range(self.n_episodes):
             state = env.reset()
@@ -53,7 +80,7 @@ class DQN():
             sum_reward = 0
             while not done:
                 
-                q_action = model(state.reshape(1,4)) #output from DQN model
+                q_action = self.model(state.reshape(1,4)) #output from DQN model
                 
                 #take action according to epsilon-greedy policy
                 if np.random.rand() < self.epsilon: 
@@ -73,10 +100,12 @@ class DQN():
                 else:
                     self.replay_memory.pop(0)
                     
+                #add replay functionality here
+                self.model  = self.replay(self.replay_memory, self.mini_batch_size)
 
                 #update state
-                state = next_state
-
+                state = next_state                
+                
                 if epsilon > 0.01:
                     epsilon -= 0.01
             
