@@ -37,10 +37,10 @@ class DQN():
         self.n_episodes = 1000
         self.epsilon = 1
         self.mini_batch_size = 64
-        self.max_memory_size = 100000
+        self.max_memory_size = 100000   #check mini_batch_size ratio over max_memory_size (check literature)
         self.replay_memory=[]
         self.model = nn_model(self.env)
-        self.loss_fn = nn.BCELoss()
+        self.loss_fn = nn.loss.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
     
     def create_env(self):
@@ -48,9 +48,9 @@ class DQN():
         self.env.seed(1)
         return self.env
     
-    def replay(self, replay_memory, mini_batch_size):
+    def replay(self, replay_memory):
         
-        minibatch = np.random.choice(replay_memory, mini_batch_size, replace=True)
+        minibatch = np.random.choice(replay_memory, self.mini_batch_size, replace=True)
         
         state_list      =      np.array(list(map(lambda x: x['state'], minibatch)))
         action_list     =      np.array(list(map(lambda x: x['action'], minibatch)))
@@ -62,15 +62,17 @@ class DQN():
 
         q_values_current_state     =      self.model.predict(state_list)
 
+        q_values_update            =      self.model.predict(state_list)
+
         for ite,(state,action,reward,q_values_next_state, done) in enumerate(zip(state_list,action_list,reward_list,q_values_next_state, done_list)): 
             if not done:  
                 target = reward + self.gamma * np.max(q_values_next_state)
             else:
                 target = reward
 
-            q_values_current_state[ite][action] = target
+            q_values_update[ite][action] = target
         
-        loss = self.loss_fn(state_list, q_values_current_state)
+        loss = self.loss_fn(q_values_update, q_values_current_state)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step() 
@@ -109,7 +111,7 @@ class DQN():
                     self.replay_memory.pop(0)
                     
                 #add replay functionality here
-                self.model  = self.replay(self.replay_memory, self.mini_batch_size)
+                self.model  = self.replay(self.replay_memory)
 
                 #update state
                 state = next_state                
