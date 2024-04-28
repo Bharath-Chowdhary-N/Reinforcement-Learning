@@ -44,10 +44,11 @@ class DQN():
     def train(self):
         env = self.env
         model = nn_model(env)
+        episode_rewards = []
         for episode in range(self.n_episodes):
             state = env.reset()
             done = False
-
+            sum_reward = 0
             while not done:
                 
                 q_action = model(state.reshape(1,4)) #output from DQN model
@@ -60,12 +61,19 @@ class DQN():
 
                 # execute the action 
                 next_state, reward, done, _ = env.step(action)
-
                 
+                # add reward to the sum
+                sum_reward += reward
+                
+                #update state
                 state = next_state
 
-                if done:
-                    break
+                if epsilon > 0.01:
+                    epsilon -= 0.01
+            
+            print(f"Episode: {episode}, Reward: {sum_reward}")
+            episode_rewards.append(sum_reward) 
+
 
 
           
