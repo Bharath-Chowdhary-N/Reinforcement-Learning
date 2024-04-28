@@ -35,6 +35,8 @@ class DQN():
         self.n_episodes = 1000
         self.epsilon = 1
         self.mini_batch_size = 64
+        self.max_memory_size = 100000
+        self.replay_memory=[]
     
     def create_env(self):
         self.env = gym.make("LunarLander-v2")
@@ -65,6 +67,13 @@ class DQN():
                 # add reward to the sum
                 sum_reward += reward
                 
+                # add the transition to the replay memory
+                if len(self.replay_memory) < self.max_memory_size:
+                    self.replay_memory.append({"state":state, "action":action, "reward":reward, "next_state":next_state, "done":done})
+                else:
+                    self.replay_memory.pop(0)
+                    
+
                 #update state
                 state = next_state
 
