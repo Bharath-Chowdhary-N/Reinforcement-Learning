@@ -28,6 +28,7 @@ class DQN():
     def __init__(self) -> None:
         self.load_hyperparams()
         self.env = self.create_env()
+        self.train()
 
     def load_hyperparams(self):
         self.gamma = 0.99
@@ -43,7 +44,28 @@ class DQN():
     def train(self):
         env = self.env
         model = nn_model(env)
-        pass # Train the model
+        for episode in range(self.n_episodes):
+            state = env.reset()
+            done = False
+
+            while not done:
+                
+                q_action = model(state.reshape(1,4)) #output from DQN model
+                
+                #take action according to epsilon-greedy policy
+                if np.random.rand() < self.epsilon: 
+                    action = env.action_space.sample()
+                else:
+                    action = np.argmax(q_action.detach().numpy())
+
+                # execute the action 
+                next_state, reward, done, _ = env.step(action)
+
+                
+                state = next_state
+
+                if done:
+                    break
 
 
           
