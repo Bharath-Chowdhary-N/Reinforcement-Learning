@@ -8,6 +8,7 @@ from gymnasium.utils import seeding
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 
 class  nn_model(nn.Module):
       def __init__(self,env):
@@ -26,8 +27,9 @@ class  nn_model(nn.Module):
 
 class DQN():
     def __init__(self) -> None:
-        self.load_hyperparams()
+        
         self.env = self.create_env()
+        self.load_hyperparams()
         self.train()
 
     def load_hyperparams(self):
@@ -37,6 +39,9 @@ class DQN():
         self.mini_batch_size = 64
         self.max_memory_size = 100000
         self.replay_memory=[]
+        self.model = nn_model(self.env)
+        self.loss_fn = nn.BCELoss()
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
     
     def create_env(self):
         self.env = gym.make("LunarLander-v2")
@@ -65,14 +70,17 @@ class DQN():
 
             q_values_current_state[ite][action] = target
         
-        self.model.fit(state_list, q_values_current_state, epochs=1, verbose=0)
+        loss = self.loss_fn(state_list, q_values_current_state)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step() 
 
         return self.model
 
     
     def train(self):
         env = self.env
-        self.model = nn_model(env)
+        
         episode_rewards = []
         for episode in range(self.n_episodes):
             state = env.reset()
