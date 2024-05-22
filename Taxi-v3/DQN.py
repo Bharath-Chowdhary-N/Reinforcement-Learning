@@ -12,17 +12,17 @@ import torch.optim as optim
 
 class  nn_model(nn.Module):
       def __init__(self,env):
-          super(Model,self).__init__()
+          super(nn_model,self).__init__()
           self.env = env
           self.n_actions = env.action_space.n
           self.input_dim = env.observation_space.shape[0] # n_states are passed on to as input dim
+          self.layer1 = nn.Linear(self.input_dim,64)
+          self.layer2 = nn.Linear(64,32)
+          self.layer3 = nn.Linear(32,self.n_actions)
       def forward(self, state):
-          layer1 = self.nn.linear(self.input_dim,64)
-          layer2 = self.nn.linear(64,32)
-          layer3 = self.nn.linear(32,self.n_actions)
-          activation1 = F.relu(layer1(state))
-          activation2 = F.relu(layer2(activation1))
-          output = layer3(activation2)
+          activation1 = F.relu(self.layer1(state))
+          activation2 = F.relu(self.layer2(activation1))
+          output = self.layer3(activation2)
           return output
 
 class DQN():
@@ -40,12 +40,12 @@ class DQN():
         self.max_memory_size = 100000   #check mini_batch_size ratio over max_memory_size (check literature)
         self.replay_memory=[]
         self.model = nn_model(self.env)
-        self.loss_fn = nn.loss.MSELoss()
+        self.loss_fn = nn.MSELoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
     
     def create_env(self):
         self.env = gym.make("LunarLander-v2")
-        self.env.seed(1)
+        #self.env.seed(1)
         return self.env
     
     def replay(self, replay_memory):
@@ -88,18 +88,19 @@ class DQN():
             state = env.reset()
             done = False
             sum_reward = 0
+            self.len_state = len(state[0])
             while not done:
-                
-                q_action = self.model(state.reshape(1,4)) #output from DQN model
+                print("{}".format(state[0]))
+                q_action = self.model(torch.from_numpy(np.reshape(state[0],[1,self.len_state]))) #output from DQN model
                 
                 #take action according to epsilon-greedy policy
                 if np.random.rand() < self.epsilon: 
                     action = env.action_space.sample()
                 else:
                     action = np.argmax(q_action.detach().numpy())
-
+                print(env.step(action))
                 # execute the action 
-                next_state, reward, done, _ = env.step(action)
+                next_state, reward, done, info, _ = env.step(action)
                 
                 # add reward to the sum
                 sum_reward += reward
@@ -124,5 +125,5 @@ class DQN():
 
 
 
-          
-          
+if __name__ == "__main__":
+    DQN()
