@@ -29,8 +29,8 @@ class DQN():
     def __init__(self) -> None:
         
         self.env = self.create_env()
-        self.load_hyperparams()
-        self.train()
+        #self.load_hyperparams()
+        #self.train()
 
     def load_hyperparams(self):
         self.gamma = 0.9
@@ -46,8 +46,14 @@ class DQN():
     
     def create_env(self):
         self.env = gym.make("LunarLander-v2")
+        self.num_states = self.env.observation_space.shape[0]
+        self.num_actions = self.env.action_space.n
+        print("-------------------------------------------------------\n  Welcome to Lunar lander! . Num states : {} , Num actions : {}       \n-----------------------------------------------------".format(self.num_states, self.num_actions))
         #self.env.seed(1)
         return self.env
+    
+    def create_policy_and_target_network():
+        pass
     
     def replay(self, replay_memory):
         
