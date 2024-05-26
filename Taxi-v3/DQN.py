@@ -33,14 +33,15 @@ class DQN():
         self.train()
 
     def load_hyperparams(self):
-        self.gamma = 0.99
-        self.n_episodes = 1000
+        self.gamma = 0.9
+        self.n_episodes = 2000
         self.epsilon = 1
-        self.mini_batch_size = 4
-        self.max_memory_size = 100   #check mini_batch_size ratio over max_memory_size (check literature)
+        self.mini_batch_size = 32
+        self.max_memory_size = 1000   #check mini_batch_size ratio over max_memory_size (check literature)
         self.replay_memory=[]
         self.model = nn_model(self.env)
         self.loss_fn = nn.MSELoss()
+        self.network_sync_rate = 10
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
     
     def create_env(self):
@@ -131,8 +132,8 @@ class DQN():
             
             print(f"Episode: {episode}, Reward: {sum_reward}")
             self.episode_rewards.append(sum_reward) 
-        with open("file.txt", "w") as output:
-             output.write(str(self.episode_rewards))
+        #with open("file.txt", "w") as output:
+            np.save("file.npy", np.array(self.episode_rewards))
 
 
 if __name__ == "__main__":
