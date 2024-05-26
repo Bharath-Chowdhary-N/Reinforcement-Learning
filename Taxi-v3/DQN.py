@@ -11,18 +11,13 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 class  nn_model(nn.Module):
-      def __init__(self,env):
+      def __init__(self,input_dim, hidden_node, output_dim):
           super(nn_model,self).__init__()
-          self.env = env
-          self.n_actions = env.action_space.n
-          self.input_dim = env.observation_space.shape[0] # n_states are passed on to as input dim
-          self.layer1 = nn.Linear(self.input_dim,64)
-          self.layer2 = nn.Linear(64,32)
-          self.layer3 = nn.Linear(32,self.n_actions)
+          self.layer1 = nn.Linear(input_dim,hidden_node)
+          self.layer2 = nn.Linear(hidden_node,output_dim)
       def forward(self, state):
           activation1 = F.relu(self.layer1(state))
-          activation2 = F.relu(self.layer2(activation1))
-          output = self.layer3(activation2)
+          output = self.layer2(activation1)
           return output
 
 class DQN():
@@ -52,8 +47,12 @@ class DQN():
         #self.env.seed(1)
         return self.env
     
-    def create_policy_and_target_network():
-        pass
+    def create_policy_and_target_network(self):
+        self.policy_network = nn_model(input_dim=self.num_states, hidden_node=self.num_states, output_dim=self.num_actions)
+        self.target_network = nn_model(input_dim=self.num_states, hidden_node=self.num_states, output_dim=self.num_actions)
+        self.target_network.load_state_dict(self.policy_network.state_dict())
+    
+    
     
     def replay(self, replay_memory):
         
