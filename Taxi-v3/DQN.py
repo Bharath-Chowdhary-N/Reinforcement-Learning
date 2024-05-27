@@ -79,9 +79,38 @@ class DQN():
                 
             if len(self.replay_memory)>self.mini_batch_size and np.sum(self.rewards_per_episode)>0:
                minibatch = np.random.choice(self.replay_memory, self.mini_batch_size, replace=True) 
-               self.optimize(minibatch, policy_dqn, target_dqn)
-    def optimize(self):
-        pass  
+               self.optimize(minibatch)
+    def optimize(self, minibatch):
+        state_list      =      torch.from_numpy(np.array(list(map(lambda x: x['state'], minibatch))))
+        action_list     =      np.array(list(map(lambda x: x['action'], minibatch)))
+        reward_list     =      np.array(list(map(lambda x: x['reward'], minibatch)))
+        next_state_list =      torch.from_numpy(np.array(list(map(lambda x: x['next_state'], minibatch))))
+        done_list       =      np.array(list(map(lambda x: x['done'], minibatch)))
+        current_q_list = []
+        target_q_list = []
+        for ite in range(self.mini_batch_size):
+            
+            if done_list[ite]:
+                target = torch.FloatTensor([reward_list[ite]])
+            else:
+                 
+                with torch.no_grad():
+                    target = torch.FloatTensor( reward_list[ite] + self.gamma* self.target_network(torch.from_numpy(np.reshape(state_list[ite],[1,self.num_states]))).max()
+                                               )
+            
+            current_q = self.policy_network(torch.from_numpy(np.reshape(state_list[ite],[1,self.num_states])))
+            current_q_list.append(current_q)
+
+            target_q = self.target_network(torch.from_numpy(np.reshape(state_list[ite],[1,self.num_states])))
+            target_q[action_list[ite]] = target
+            target_q_list.append(target_q)
+        
+        loss = self.loss_fn(torch.stack(current_q_list), torch.stack(target_q_list))
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        
 '''
     def replay(self, replay_memory):
         
