@@ -10,23 +10,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-class  nn_model(nn.Module):
-      def __init__(self,input_dim, hidden_node, output_dim):
-          super(nn_model,self).__init__()
-          self.layer1 = nn.Linear(input_dim,hidden_node)
-          self.layer2 = nn.Linear(hidden_node,output_dim)
+class  Critic_Model(nn.Module):
+      """
+      This is for Value function update. Loss is usually MSE loss.
+      """
+      def __init__(self):
+          super(Critic_Model,self).__init__()
+          critic_layer_dim = [512,256,64,1]
+          self.layer1 = nn.Linear(critic_layer_dim[0], critic_layer_dim[1])
+          self.layer2 = nn.Linear(critic_layer_dim[1], critic_layer_dim[2])
+          self.layer3 = nn.Linear(critic_layer_dim[2],critic_layer_dim[3])
       def forward(self, state):
           activation1 = F.relu(self.layer1(state))
-          output = self.layer2(activation1)
+          #activation2 = F.relu(activation1)
+          activation2 = F.relu(self.layer2(activation1))
+          output      = self.layer3(activation2)
           return output
+
 
 class PPO():
     def __init__(self) -> None:
         
         self.env = self.create_env()
         self.load_hyperparams()
-        self.create_policy_and_target_network()
-        self.train()
+        self.create_actor_and_critic_network()
+        #self.create_policy_and_target_network()
+        #self.train()
 
     def load_hyperparams(self):
         self.gamma = 0.9
@@ -48,6 +57,10 @@ class PPO():
         print("-------------------------------------------------------\n  Welcome to Lunar lander! . Num states : {} , Num actions : {}       \n-----------------------------------------------------".format(self.num_states, self.num_actions))
         #self.env.seed(1)
         return self.env
+    
+    def create_actor_and_critic_network(self):
+        self.critic_network = Critic_Model()
+        print("---------------------------------------------Critic Network created---------------------------------------------------")
     
     def create_policy_and_target_network(self):
         self.policy_network = nn_model(input_dim=self.num_states, hidden_node=self.num_states, output_dim=self.num_actions)
@@ -94,3 +107,5 @@ class PPO():
             if ite%100==0:
                 print("----------------------{}: has been processed------------------------".format(ite))
         torch.save(self.policy_network.state_dict(), "lunar_lander.pt")
+if __name__ == "__main__":
+    ppo = PPO()
