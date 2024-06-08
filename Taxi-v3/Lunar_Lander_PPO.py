@@ -27,6 +27,23 @@ class  Critic_Model(nn.Module):
           output      = self.layer3(activation2)
           return output
 
+class  Actor_Model(nn.Module):
+      """
+      This is for Value function update. Loss is usually MSE loss.
+      """
+      def __init__(self, action_space):
+          super(Actor_Model,self).__init__()
+          critic_layer_dim = [512,256,64, action_space]
+          self.layer1 = nn.Linear(critic_layer_dim[0], critic_layer_dim[1])
+          self.layer2 = nn.Linear(critic_layer_dim[1], critic_layer_dim[2])
+          self.layer3 = nn.Linear(critic_layer_dim[2], critic_layer_dim[3])
+      def forward(self, state):
+          activation1 = F.relu(self.layer1(state))
+          #activation2 = F.relu(activation1)
+          activation2 = F.relu(self.layer2(activation1))
+          output      = F.softmax(self.layer3(activation2))
+          return output
+
 
 class PPO():
     def __init__(self) -> None:
@@ -45,7 +62,8 @@ class PPO():
         self.max_memory_size = 1000   #check mini_batch_size ratio over max_memory_size (check literature)
         self.replay_memory=[]
         self.epsilon_history = []
-        self.loss_fn = nn.MSELoss()
+        self.loss_fn_critic = nn.MSELoss()
+        self.loss_fn_actor  = nn.MSELoss()
         self.learning_rate=0.0001
         self.network_sync_rate = 10
         #self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -61,7 +79,9 @@ class PPO():
     def create_actor_and_critic_network(self):
         self.critic_network = Critic_Model()
         print("---------------------------------------------Critic Network created---------------------------------------------------")
-    
+        self.actor_network = Actor_Model(self.num_actions)
+        print("---------------------------------------------Actor Network created---------------------------------------------------")
+
     def create_policy_and_target_network(self):
         self.policy_network = nn_model(input_dim=self.num_states, hidden_node=self.num_states, output_dim=self.num_actions)
         self.target_network = nn_model(input_dim=self.num_states, hidden_node=self.num_states, output_dim=self.num_actions)
