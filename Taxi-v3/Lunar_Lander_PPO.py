@@ -14,17 +14,20 @@ class  Critic_Model(nn.Module):
       """
       This is for Value function update. Loss is usually MSE loss.
       """
-      def __init__(self):
+      def __init__(self, state_space):
           super(Critic_Model,self).__init__()
-          critic_layer_dim = [512,256,64,1]
+          critic_layer_dim = [state_space, 512,256,64,1]
           self.layer1 = nn.Linear(critic_layer_dim[0], critic_layer_dim[1])
           self.layer2 = nn.Linear(critic_layer_dim[1], critic_layer_dim[2])
           self.layer3 = nn.Linear(critic_layer_dim[2],critic_layer_dim[3])
+          self.layer4 = nn.Linear(critic_layer_dim[3],critic_layer_dim[4])
+
       def forward(self, state):
           activation1 = F.relu(self.layer1(state))
           #activation2 = F.relu(activation1)
           activation2 = F.relu(self.layer2(activation1))
-          output      = self.layer3(activation2)
+          activation3 = F.relu(self.layer3(activation2))
+          output      = self.layer4(activation3)
           return output
 
 class  Actor_Model(nn.Module):
@@ -95,7 +98,7 @@ class PPO():
         return self.env
     
     def create_actor_and_critic_network(self):
-        self.critic_network = Critic_Model()
+        self.critic_network = Critic_Model(self.num_states)
         print("---------------------------------------------Critic Network created---------------------------------------------------")
         self.actor_network = Actor_Model(self.num_actions, self.num_states)
         print("---------------------------------------------Actor Network created---------------------------------------------------")
@@ -105,17 +108,38 @@ class PPO():
         with torch.no_grad():
             prediction = self.actor_network(state_torch)
         prediction_np = prediction[0].cpu().detach().numpy()
-        print(prediction_np)
+        #print(prediction_np)
         action = np.random.choice(self.num_actions, p=prediction_np)
-        print("action taken: ",action)
+        #print("action taken: ",action)
         action_one_hot = np.zeros([self.num_actions])
         action_one_hot[action] = 1
-        print(action_one_hot, prediction_np)
+        #print(action_one_hot, prediction_np)
         return action, action_one_hot, prediction_np
     def optimize(self):
-        states = torch.from_numpy(np.array(list(map(lambda x: x['state'], self.memory))))
-        print("We have reched heer")
-        print(states[0])
+        print(self.memory)
+        print("\n ----------------------------------- \n")
+        self.states      = torch.from_numpy(np.array(list(map(lambda x: x['state'], self.memory))))
+        self.next_states = torch.from_numpy(np.array(list(map(lambda x: x['next_state'], self.memory))))
+        self.dones       = np.array(list(map(lambda x: x['done'], self.memory)))
+        self.actions     = np.array(list(map(lambda x: x['action'], self.memory)))
+        self.rewards     = np.array(list(map(lambda x: x['reward'], self.memory)))
+        #print("We have reched here")
+
+        #Get value from critic network
+        with torch.no_grad():
+            values      = self.critic_network(self.states[0])
+            next_values = self.critic_network(self.next_states[0])
+        self.values = values.cpu().detach().numpy()
+        self.next_values = next_values.cpu().detach().numpy()
+        #print(values.shape, next_values.shape)
+        advantage = self.get_advantage()
+        print("----------------advantage completed-----------")
+    
+    def get_advantage(self):
+        advantage =  [r + self.gamma * (1 - d) * nv - v for r, d, nv, v in zip(self.rewards, self.dones, self.next_values, self.values)]
+        return advantage
+
+
     def train_actor_critic(self):
         step_count = 0
         for ite in range(self.n_episodes):
@@ -129,7 +153,7 @@ class PPO():
                 action, action_one_hot, prediction = self.act(state)
                 
                 next_state, reward, done, trunc, info = self.env.step(action)      
-                next_state = np.reshape(next_state, [1, self.num_states])
+                #next_state = np.reshape(next_state, [1, self.num_states])
 
                 self.memory.append({"state":state, "action":action_one_hot, "reward":reward, "next_state":next_state, "done":done})
                 
@@ -137,11 +161,11 @@ class PPO():
                 self.score += reward
                 print("action_completed")
                 #done = True 
-                if True:
+                if done:
                    #self.episode_finished += 1 
                    self.score_list.append(self.score)
                    self.optimize()
-                done=True  
+                #done=True  
 
                 
                 
