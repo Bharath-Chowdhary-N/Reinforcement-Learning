@@ -70,7 +70,7 @@ class PPO():
 
     def load_hyperparams(self):
         self.gamma = 0.9
-        self.n_episodes = 1
+        self.n_episodes = 2
         self.epsilon = 1
         self.mini_batch_size = 1
         self.max_memory_size = 1000   #check mini_batch_size ratio over max_memory_size (check literature)
@@ -113,7 +113,9 @@ class PPO():
         print(action_one_hot, prediction_np)
         return action, action_one_hot, prediction_np
     def optimize(self):
-        pass
+        states = torch.from_numpy(np.array(list(map(lambda x: x['state'], self.memory))))
+        print("We have reched heer")
+        print(states[0])
     def train_actor_critic(self):
         step_count = 0
         for ite in range(self.n_episodes):
@@ -135,11 +137,11 @@ class PPO():
                 self.score += reward
                 print("action_completed")
                 #done = True 
-                if done:
-                   self.episode_finished += 1 
+                if True:
+                   #self.episode_finished += 1 
                    self.score_list.append(self.score)
                    self.optimize()
-
+                done=True  
 
                 
                 
